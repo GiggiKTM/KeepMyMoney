@@ -262,6 +262,20 @@
     <div class="container">
         <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">Gestore del Budget</h1>
 
+        <!-- Sezione Importa/Esporta Dati -->
+        <details class="mb-8">
+            <summary>Importa/Esporta Dati</summary>
+            <div class="space-y-4 pt-4">
+                <button id="export-csv-btn" class="btn btn-primary w-full bg-purple-600 hover:bg-purple-700">Esporta Dati (CSV)</button>
+                <div class="input-group flex flex-col md:flex-row items-center gap-4">
+                    <label for="import-csv-file" class="block text-gray-700 text-sm font-bold mb-2 md:mb-0">Importa da CSV:</label>
+                    <input type="file" id="import-csv-file" accept=".csv" class="flex-grow shadow appearance-none border rounded-lg py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+                    <button id="import-csv-btn" class="btn btn-secondary bg-blue-600 hover:bg-blue-700 text-white">Importa</button>
+                </div>
+                <div id="import-export-message-box" class="message-box hidden"></div>
+            </div>
+        </details>
+
         <!-- Sezione Navigazione Mese -->
         <div class="month-navigation">
             <button id="prev-month-btn">&lt;</button>
@@ -404,11 +418,17 @@
         const importFixedExpensesBtn = document.getElementById('import-fixed-expenses-btn');
         const fixedExpenseMessageBox = document.getElementById('fixed-expense-message-box');
 
-
         // Elementi DOM per la navigazione mesi
         const currentMonthDisplay = document.getElementById('current-month-display');
         const prevMonthBtn = document.getElementById('prev-month-btn');
         const nextMonthBtn = document.getElementById('next-month-btn');
+
+        // Elementi DOM per Import/Export
+        const importCsvFileInput = document.getElementById('import-csv-file');
+        const exportCsvBtn = document.getElementById('export-csv-btn');
+        const importCsvBtn = document.getElementById('import-csv-btn');
+        const importExportMessageBox = document.getElementById('import-export-message-box');
+
 
         // Oggetto per memorizzare i dati mensili (transazioni, saldo pregresso, entrata fissa, saldi PayPal/Revolut, spese fisse)
         // La chiave sarà nel formato 'YYYY-MM'
@@ -419,6 +439,7 @@
 
         // Variabile per tenere traccia dell'elemento trascinato
         let draggedItem = null;
+        let selectedImportFile = null; // To store the file selected by the user
 
         /**
          * Mostra un messaggio temporaneo all'utente.
@@ -879,6 +900,267 @@
             }
         };
 
+        /**
+         * Esporta tutti i dati del budget in un file CSV.
+         */
+        const exportToCsv = () => {
+            const headers = ["MonthKey", "EntryType", "Id", "Description", "Amount", "TransactionDate", "TransactionType", "PreviousMonthBalance", "FixedMonthlyIncome", "PayPalBalance", "RevolutBalance"];
+            let csvContent = headers.map(h => `"${h}"`).join(",") + "\n"; // Quote headers
+
+            for (const monthKey in monthlyData) {
+                const monthData = monthlyData[monthKey];
+
+                // Add summary row
+                const summaryRow = [
+                    monthKey,
+                    "summary",
+                    "", // Id
+                    "", // Description
+                    "", // Amount
+                    "", // TransactionDate
+                    "", // TransactionType
+                    (monthData.previousMonthBalance || 0).toFixed(2),
+                    (monthData.fixedMonthlyIncome || 0).toFixed(2),
+                    (monthData.paypalBalance || 0).toFixed(2),
+                    (monthData.revolutBalance || 0).toFixed(2)
+                ];
+                csvContent += summaryRow.map(item => `"${String(item).replace(/"/g, '""')}"`).join(",") + "\n";
+
+                // Add transaction rows
+                monthData.transactions.forEach(t => {
+                    const transactionRow = [
+                        monthKey,
+                        "transaction",
+                        t.id,
+                        t.description,
+                        t.amount.toFixed(2),
+                        t.date,
+                        t.type, // Add transaction type
+                        "", "", "", "" // Empty for summary fields
+                    ];
+                    csvContent += transactionRow.map(item => `"${String(item).replace(/"/g, '""')}"`).join(",") + "\n";
+                });
+
+                // Add fixed expense rows
+                monthData.fixedExpenses.forEach(fe => {
+                    const fixedExpenseRow = [
+                        monthKey,
+                        "fixedExpense",
+                        fe.id,
+                        fe.description,
+                        fe.amount.toFixed(2),
+                        "", // TransactionDate
+                        "", // TransactionType
+                        "", "", "", "" // Empty for summary fields
+                    ];
+                    csvContent += fixedExpenseRow.map(item => `"${String(item).replace(/"/g, '""')}"`).join(",") + "\n";
+                });
+            }
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            if (link.download !== undefined) { // Feature detection for download attribute
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'budget_data.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showImportExportMessage("Dati esportati con successo in budget_data.csv!");
+            } else {
+                showImportExportMessage("Il tuo browser non supporta il download diretto del CSV.", true);
+            }
+        };
+
+        /**
+         * Parsifica una riga CSV, gestendo le virgolette.
+         * @param {string} line - La riga CSV da parsificare.
+         * @returns {string[]} Un array di stringhe, rappresentanti i campi.
+         */
+        const parseCsvLine = (line) => {
+            const result = [];
+            let inQuote = false;
+            let currentField = '';
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                    if (inQuote && line[i + 1] === '"') { // Escaped quote ""
+                        currentField += '"';
+                        i++; // Skip the next quote
+                    } else {
+                        inQuote = !inQuote;
+                    }
+                } else if (char === ',' && !inQuote) {
+                    result.push(currentField);
+                    currentField = '';
+                } else {
+                    currentField += char;
+                }
+            }
+            result.push(currentField);
+            return result.map(field => field.trim()); // Trim all fields at the end
+        };
+
+        /**
+         * Importa i dati da un file CSV.
+         * @param {File} file - Il file CSV da importare.
+         */
+        const importFromCsv = (file) => {
+            if (!file) {
+                showImportExportMessage("Nessun file selezionato.", true);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                const lines = text.split('\n').filter(line => line.trim() !== '');
+                if (lines.length <= 1) { // Check for at least headers + one data row
+                    showImportExportMessage("Il file CSV è vuoto o contiene solo intestazioni.", true);
+                    return;
+                }
+
+                const headers = parseCsvLine(lines[0]);
+                const expectedHeaders = ["MonthKey", "EntryType", "Id", "Description", "Amount", "TransactionDate", "TransactionType", "PreviousMonthBalance", "FixedMonthlyIncome", "PayPalBalance", "RevolutBalance"];
+
+                // Basic header validation
+                if (headers.length !== expectedHeaders.length || !headers.every((h, i) => h === expectedHeaders[i])) {
+                    showImportExportMessage("Intestazioni CSV non valide. Assicurati che il file sia stato esportato da questa app.", true);
+                    console.error("Expected headers:", expectedHeaders);
+                    console.error("Found headers:", headers);
+                    return;
+                }
+
+                const importedDataTemp = {}; // Use a temporary object to build data
+
+                for (let i = 1; i < lines.length; i++) {
+                    const values = parseCsvLine(lines[i]);
+                    if (values.length !== headers.length) {
+                        console.warn(`Skipping malformed row (column count mismatch): ${lines[i]}`);
+                        continue;
+                    }
+
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index];
+                    });
+
+                    const monthKey = row.MonthKey;
+                    if (!monthKey) {
+                        console.warn(`Skipping row without MonthKey: ${lines[i]}`);
+                        continue;
+                    }
+
+                    if (!importedDataTemp[monthKey]) {
+                        importedDataTemp[monthKey] = {
+                            transactions: [],
+                            fixedExpenses: [],
+                            previousMonthBalance: 0,
+                            fixedMonthlyIncome: 0,
+                            paypalBalance: 0,
+                            revolutBalance: 0
+                        };
+                    }
+
+                    switch (row.EntryType) {
+                        case "summary":
+                            importedDataTemp[monthKey].previousMonthBalance = parseFloat(row.PreviousMonthBalance) || 0;
+                            importedDataTemp[monthKey].fixedMonthlyIncome = parseFloat(row.FixedMonthlyIncome) || 0;
+                            importedDataTemp[monthKey].paypalBalance = parseFloat(row.PayPalBalance) || 0;
+                            importedDataTemp[monthKey].revolutBalance = parseFloat(row.RevolutBalance) || 0;
+                            break;
+                        case "transaction":
+                            const transactionId = parseInt(row.Id);
+                            const transactionAmount = parseFloat(row.Amount);
+                            if (!isNaN(transactionAmount) && row.Description && row.TransactionDate && row.TransactionType) {
+                                const newTransaction = {
+                                    id: transactionId,
+                                    description: row.Description,
+                                    amount: transactionAmount,
+                                    type: row.TransactionType,
+                                    date: row.TransactionDate
+                                };
+                                // Check for existing transaction by ID
+                                const existingTransactionIndex = importedDataTemp[monthKey].transactions.findIndex(t => t.id === newTransaction.id);
+                                if (existingTransactionIndex !== -1) {
+                                    importedDataTemp[monthKey].transactions[existingTransactionIndex] = newTransaction;
+                                } else {
+                                    importedDataTemp[monthKey].transactions.push(newTransaction);
+                                }
+                            } else {
+                                console.warn(`Skipping malformed transaction row: ${lines[i]}`);
+                            }
+                            break;
+                        case "fixedExpense":
+                            const fixedExpenseId = parseInt(row.Id);
+                            const fixedExpenseAmount = parseFloat(row.Amount);
+                            if (!isNaN(fixedExpenseAmount) && row.Description) {
+                                const newFixedExpense = {
+                                    id: fixedExpenseId,
+                                    description: row.Description,
+                                    amount: fixedExpenseAmount
+                                };
+                                // Check for existing fixed expense by ID
+                                const existingFixedExpenseIndex = importedDataTemp[monthKey].fixedExpenses.findIndex(fe => fe.id === newFixedExpense.id);
+                                if (existingFixedExpenseIndex !== -1) {
+                                    importedDataTemp[monthKey].fixedExpenses[existingFixedExpenseIndex] = newFixedExpense;
+                                } else {
+                                    importedDataTemp[monthKey].fixedExpenses.push(newFixedExpense);
+                                }
+                            } else {
+                                console.warn(`Skipping malformed fixed expense row: ${lines[i]}`);
+                            }
+                            break;
+                        default:
+                            console.warn(`Unknown EntryType: ${row.EntryType} in row: ${lines[i]}`);
+                    }
+                }
+
+                // Merge importedDataTemp into monthlyData (current global state)
+                for (const monthKey in importedDataTemp) {
+                    if (monthlyData[monthKey]) {
+                        // Merge summary data (overwrite)
+                        monthlyData[monthKey].previousMonthBalance = importedDataTemp[monthKey].previousMonthBalance;
+                        monthlyData[monthKey].fixedMonthlyIncome = importedDataTemp[monthKey].fixedMonthlyIncome;
+                        monthlyData[monthKey].paypalBalance = importedDataTemp[monthKey].paypalBalance;
+                        monthlyData[monthKey].revolutBalance = importedDataTemp[monthKey].revolutBalance;
+
+                        // Merge transactions (add new or update by ID)
+                        importedDataTemp[monthKey].transactions.forEach(impT => {
+                            const existingIndex = monthlyData[monthKey].transactions.findIndex(t => t.id === impT.id);
+                            if (existingIndex !== -1) {
+                                monthlyData[monthKey].transactions[existingIndex] = impT;
+                            } else {
+                                monthlyData[monthKey].transactions.push(impT);
+                            }
+                        });
+
+                        // Merge fixed expenses (add new or update by ID)
+                        importedDataTemp[monthKey].fixedExpenses.forEach(impFE => {
+                            const existingIndex = monthlyData[monthKey].fixedExpenses.findIndex(fe => fe.id === impFE.id);
+                            if (existingIndex !== -1) {
+                                monthlyData[monthKey].fixedExpenses[existingIndex] = impFE;
+                            } else {
+                                monthlyData[monthKey].fixedExpenses.push(impFE);
+                            }
+                        });
+                    } else {
+                        // If month doesn't exist in current data, just add it
+                        monthlyData[monthKey] = importedDataTemp[monthKey];
+                    }
+                }
+
+                saveMonthlyData();
+                renderCurrentMonthData();
+                showImportExportMessage("Dati importati con successo!");
+            };
+            reader.onerror = () => {
+                showImportExportMessage("Errore durante la lettura del file.", true);
+            };
+            reader.readAsText(file);
+        };
+
 
         /**
          * Renderizza tutti i dati per il mese corrente (saldo pregresso, entrata fissa, saldi PayPal/Revolut, transazioni, spese fisse).
@@ -986,6 +1268,29 @@
 
         // Gestore per il pulsante di importazione spese fisse
         importFixedExpensesBtn.addEventListener('click', importFixedExpensesFromPreviousMonth);
+
+        // Event listener per file input change
+        importCsvFileInput.addEventListener('change', (e) => {
+            selectedImportFile = e.target.files[0];
+            if (selectedImportFile) {
+                showImportExportMessage(`File selezionato: ${selectedImportFile.name}`, false, importExportMessageBox);
+            } else {
+                showImportExportMessage("Nessun file selezionato.", true, importExportMessageBox);
+            }
+        });
+
+        // Event listener per import button click
+        importCsvBtn.addEventListener('click', () => {
+            if (selectedImportFile) {
+                importFromCsv(selectedImportFile);
+            } else {
+                showImportExportMessage("Seleziona prima un file CSV da importare.", true, importExportMessageBox);
+            }
+        });
+
+        // Event listener for export button click
+        exportCsvBtn.addEventListener('click', exportToCsv);
+
 
         // Imposta la data di default nel campo data transazione all'avvio
         const today = new Date();
