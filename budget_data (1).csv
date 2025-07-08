@@ -1,0 +1,5 @@
+"MonthKey","EntryType","Id","Description","Amount","TransactionDate","TransactionType","PreviousMonthBalance","FixedMonthlyIncome","PayPalBalance","RevolutBalance"
+"2025-07","summary","","","","","","0.00","0.00","0.00","0.00"
+"2025-07","fixedExpense","1752008820376","Auto (Rata)","150.00","","","","","",""
+"2025-07","fixedExpense","1752008845755","Auto (Assicurazione)","67.50","","","","","",""
+"2025-07","fixedExpense","1752009047906","Affitto","100.00","","","","","",""
