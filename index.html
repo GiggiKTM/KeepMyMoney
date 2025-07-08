@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestore del Budget</title>
+    <!-- Carica Tailwind CSS per uno stile moderno e responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Stile personalizzato per il font Inter */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Sfondo leggermente grigio */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Allinea in alto per evitare che sia troppo centrato verticalmente su schermi grandi */
+            min-height: 100vh; /* Altezza minima per riempire la viewport */
+            padding: 20px; /* Padding generale */
+            box-sizing: border-box; /* Include padding nel calcolo della larghezza */
+        }
+        .container {
+            max-width: 600px; /* Larghezza massima del contenitore */
+            width: 100%; /* Occupa tutta la larghezza disponibile */
+            background-color: #ffffff; /* Sfondo bianco per il contenitore principale */
+            border-radius: 12px; /* Bordi arrotondati */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Ombra leggera */
+            padding: 30px; /* Padding interno */
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db; /* Colore del bordo */
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #2563eb; /* Colore del bordo al focus */
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2); /* Ombra al focus */
+        }
+        .btn {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .btn-primary {
+            background-color: #2563eb; /* Blu primario */
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8; /* Blu più scuro al hover */
+            transform: translateY(-1px); /* Leggero sollevamento */
+        }
+        .btn-danger {
+            background-color: #ef4444; /* Rosso */
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #dc2626; /* Rosso più scuro al hover */
+            transform: translateY(-1px);
+        }
+        .btn-success {
+            background-color: #10b981; /* Verde */
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #047857; /* Verde più scuro al hover */
+            transform: translateY(-1px);
+        }
+        .btn-info {
+            background-color: #3b82f6; /* Blu chiaro */
+            color: white;
+        }
+        .btn-info:hover {
+            background-color: #2563eb; /* Blu più scuro al hover */
+            transform: translateY(-1px);
+        }
+        .btn-secondary { /* Nuovo stile per il pulsante di importazione */
+            background-color: #6b7280;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+
+        .transaction-item, .fixed-expense-item {
+            display: flex;
+            flex-wrap: wrap; /* Permette agli elementi di andare a capo su schermi piccoli */
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background-color: #f9fafb; /* Sfondo leggermente più scuro per gli elementi */
+            border-radius: 8px;
+            border-left: 5px solid; /* Bordo laterale per indicare tipo di transazione */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Ombra leggera */
+            cursor: grab; /* Cursore per indicare che è trascinabile */
+        }
+        .transaction-item.income {
+            border-left-color: #10b981; /* Verde per le entrate */
+        }
+        .transaction-item.expense, .fixed-expense-item {
+            border-left-color: #ef4444; /* Rosso per le uscite e spese fisse */
+        }
+        .fixed-expense-item.dragging {
+            opacity: 0.5; /* Rende l'elemento trascinato semitrasparente */
+            border: 2px dashed #60a5fa; /* Bordo tratteggiato durante il trascinamento */
+        }
+        .transaction-item .description, .fixed-expense-item .description {
+            font-weight: 500;
+            color: #333;
+            flex-basis: 60%; /* Occupa più spazio per la descrizione su mobile */
+            min-width: 150px; /* Larghezza minima per la descrizione */
+        }
+        .transaction-item .amount, .fixed-expense-item .amount {
+            font-weight: 700;
+            margin-left: auto; /* Sposta l'importo a destra */
+            margin-right: 15px; /* Spazio tra importo e pulsante elimina */
+            flex-basis: auto; /* Adatta la larghezza */
+            min-width: 80px; /* Larghezza minima per l'importo */
+            text-align: right;
+        }
+        .transaction-item .amount.income {
+            color: #10b981; /* Verde per importo entrate */
+        }
+        .transaction-item .amount.expense, .fixed-expense-item .amount {
+            color: #ef4444; /* Rosso per importo uscite e spese fisse */
+        }
+        .transaction-item .btn-danger, .fixed-expense-item .flex.gap-2 {
+            margin-top: 10px; /* Spazio sopra i pulsanti su mobile */
+            width: 100%; /* Occupano tutta la larghezza su mobile */
+            justify-content: flex-end; /* Allinea i pulsanti a destra */
+        }
+        @media (min-width: 640px) { /* Breakpoint md per Tailwind */
+            .transaction-item .description, .fixed-expense-item .description {
+                flex-basis: auto; /* Rimuove la base fissa su desktop */
+            }
+            .transaction-item .amount, .fixed-expense-item .amount {
+                flex-basis: auto;
+            }
+            .transaction-item .btn-danger, .fixed-expense-item .flex.gap-2 {
+                margin-top: 0;
+                width: auto;
+                justify-content: flex-start;
+            }
+        }
+
+
+        .balance-display {
+            font-size: 1.8rem;
+            font-weight: 700;
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #e0f2fe; /* Sfondo azzurro per il saldo */
+            color: #0c4a6e; /* Testo blu scuro */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        .balance-display.positive {
+            color: #10b981; /* Verde se positivo */
+        }
+        .balance-display.negative {
+            color: #ef4444; /* Rosso se negativo */
+        }
+        .month-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f0f8ff; /* Sfondo leggero per la navigazione mesi */
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .month-navigation button {
+            background-color: #60a5fa;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .month-navigation button:hover {
+            background-color: #3b82f6;
+        }
+        .month-navigation span {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1e40af;
+        }
+        details {
+            background-color: #f9fafb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        summary {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #2563eb;
+            cursor: pointer;
+            outline: none;
+            padding-bottom: 10px; /* Spazio sotto il titolo */
+        }
+        summary::-webkit-details-marker {
+            display: none; /* Nasconde l'indicatore di default */
+        }
+        summary::before {
+            content: '▶'; /* Indicatore personalizzato */
+            margin-right: 10px;
+            transition: transform 0.2s;
+            display: inline-block;
+        }
+        details[open] summary::before {
+            content: '▼';
+            transform: rotate(90deg); /* Ruota l'indicatore quando aperto */
+        }
+        .fixed-expense-item .edit-input {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 5px 8px;
+            font-size: 0.9rem;
+            margin-right: 10px;
+            flex-grow: 1; /* Permette all'input di espandersi */
+        }
+        .fixed-expense-item .edit-buttons {
+            display: flex;
+            gap: 5px;
+            margin-left: 10px;
+        }
+        .message-box {
+            background-color: #d1fae5; /* Verde chiaro */
+            color: #065f46; /* Verde scuro */
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+            text-align: center;
+            font-weight: 500;
+            transition: opacity 0.3s ease-out;
+        }
+        .message-box.error {
+            background-color: #fee2e2; /* Rosso chiaro */
+            color: #991b1b; /* Rosso scuro */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">Gestore del Budget</h1>
+
+        <!-- Sezione Navigazione Mese -->
+        <div class="month-navigation">
+            <button id="prev-month-btn">&lt; Mese Precedente</button>
+            <span id="current-month-display" class="text-lg font-semibold">Luglio 2025</span>
+            <button id="next-month-btn">Mese Successivo &gt;</button>
+        </div>
+
+        <!-- Sezione Saldo Attuale -->
+        <div class="balance-display mb-8 rounded-lg p-4 shadow-md bg-blue-50">
+            <h2 class="text-xl font-semibold text-gray-700">Saldo Attuale:</h2>
+            <p id="current-balance" class="text-4xl font-extrabold text-blue-700 mt-2">€ 0.00</p>
+        </div>
+
+        <!-- Dettagli Saldo e Entrate (Richiudibile) -->
+        <details open class="mb-8">
+            <summary>Dettagli Saldo e Entrate</summary>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                <div class="input-group">
+                    <label for="previous-month-balance" class="block text-gray-700 text-sm font-bold mb-2">Saldo Pregresso Mese Precedente (€):</label>
+                    <input type="number" id="previous-month-balance" placeholder="Es. 500.00" step="0.01" value="0.00"
+                           class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+                </div>
+                <div class="input-group">
+                    <label for="fixed-monthly-income" class="block text-gray-700 text-sm font-bold mb-2">Entrata Fissa Mensile (€):</label>
+                    <input type="number" id="fixed-monthly-income" placeholder="Es. 1500.00" step="0.01" value="0.00"
+                           class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+                </div>
+                <div class="input-group">
+                    <label for="paypal-balance" class="block text-gray-700 text-sm font-bold mb-2">Saldo PayPal (€):</label>
+                    <input type="number" id="paypal-balance" placeholder="Es. 100.00" step="0.01" value="0.00"
+                           class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+                </div>
+                <div class="input-group">
+                    <label for="revolut-balance" class="block text-gray-700 text-sm font-bold mb-2">Saldo Revolut (€):</label>
+                    <input type="number" id="revolut-balance" placeholder="Es. 200.00" step="0.01" value="0.00"
+                           class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+                </div>
+            </div>
+        </details>
+
+        <!-- Form per Aggiungere Nuove Transazioni -->
+        <h2 class="text-2xl font-semibold text-gray-800 mb-6">Aggiungi Nuova Transazione</h2>
+        <form id="transaction-form" class="space-y-5">
+            <div class="input-group">
+                <label for="transaction-date" class="block text-gray-700 text-sm font-bold mb-2">Data Transazione:</label>
+                <input type="date" id="transaction-date" required
+                       class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+            </div>
+            <div class="input-group">
+                <label for="description" class="block text-gray-700 text-sm font-bold mb-2">Descrizione:</label>
+                <input type="text" id="description" placeholder="Es. Stipendio, Affitto, Spesa" required
+                       class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+            </div>
+
+            <div class="input-group">
+                <label for="amount" class="block text-gray-700 text-sm font-bold mb-2">Importo (€):</label>
+                <input type="number" id="amount" placeholder="Es. 100.00" step="0.01" required
+                       class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+            </div>
+
+            <div class="input-group">
+                <label for="type" class="block text-gray-700 text-sm font-bold mb-2">Tipo:</label>
+                <select id="type" required
+                        class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+                    <option value="income">Entrata</option>
+                    <option value="expense">Uscita</option>
+                </select>
+            </div>
+
+            <button type="submit"
+                    class="btn btn-primary w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200 ease-in-out transform hover:-translate-y-1">
+                Aggiungi Transazione
+            </button>
+        </form>
+
+        <!-- Sezione Storico Transazioni -->
+        <h2 class="text-2xl font-semibold text-gray-800 mt-10 mb-6">Storico Transazioni</h2>
+        <div id="transactions-list" class="space-y-4">
+            <!-- Le transazioni verranno aggiunte qui tramite JavaScript -->
+            <p class="text-gray-500 text-center" id="no-transactions-message">Nessuna transazione ancora per questo mese. Aggiungine una!</p>
+        </div>
+
+        <!-- Sezione Spese Fisse -->
+        <h2 class="text-2xl font-semibold text-gray-800 mt-10 mb-6">Spese Fisse</h2>
+        <button id="import-fixed-expenses-btn"
+                class="btn btn-secondary w-full mb-6 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200 ease-in-out transform hover:-translate-y-1">
+            Importa Spese Fisse Mese Precedente
+        </button>
+        <div id="fixed-expense-message-box" class="message-box hidden"></div>
+        <form id="fixed-expense-form" class="space-y-5 mb-6">
+            <div class="input-group">
+                <label for="fixed-expense-description" class="block text-gray-700 text-sm font-bold mb-2">Descrizione Spesa Fissa:</label>
+                <input type="text" id="fixed-expense-description" placeholder="Es. Affitto, Abbonamento Netflix" required
+                       class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+            </div>
+            <div class="input-group">
+                <label for="fixed-expense-amount" class="block text-gray-700 text-sm font-bold mb-2">Importo Spesa Fissa (€):</label>
+                <input type="number" id="fixed-expense-amount" placeholder="Es. 50.00" step="0.01" required
+                       class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+            </div>
+            <button type="submit"
+                    class="btn btn-primary w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200 ease-in-out transform hover:-translate-y-1">
+                Aggiungi Spesa Fissa
+            </button>
+        </form>
+        <div id="fixed-expenses-list" class="space-y-4">
+            <!-- Le spese fisse verranno aggiunte qui tramite JavaScript -->
+            <p class="text-gray-500 text-center" id="no-fixed-expenses-message">Nessuna spesa fissa ancora. Aggiungine una!</p>
+        </div>
+    </div>
+
+    <script>
+        // Inizializzazione delle variabili globali fornite dall'ambiente Canvas
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Elementi DOM per le transazioni
+        const transactionForm = document.getElementById('transaction-form');
+        const descriptionInput = document.getElementById('description');
+        const amountInput = document.getElementById('amount');
+        const typeSelect = document.getElementById('type');
+        const transactionDateInput = document.getElementById('transaction-date');
+        const transactionsList = document.getElementById('transactions-list');
+        const noTransactionsMessage = document.getElementById('no-transactions-message');
+
+        // Elementi DOM per il saldo e le entrate/saldi fissi
+        const currentBalanceDisplay = document.getElementById('current-balance');
+        const previousMonthBalanceInput = document.getElementById('previous-month-balance');
+        const fixedMonthlyIncomeInput = document.getElementById('fixed-monthly-income');
+        const paypalBalanceInput = document.getElementById('paypal-balance');
+        const revolutBalanceInput = document.getElementById('revolut-balance');
+
+        // Elementi DOM per le spese fisse
+        const fixedExpenseForm = document.getElementById('fixed-expense-form');
+        const fixedExpenseDescriptionInput = document.getElementById('fixed-expense-description');
+        const fixedExpenseAmountInput = document.getElementById('fixed-expense-amount');
+        const fixedExpensesList = document.getElementById('fixed-expenses-list');
+        const noFixedExpensesMessage = document.getElementById('no-fixed-expenses-message');
+        const importFixedExpensesBtn = document.getElementById('import-fixed-expenses-btn');
+        const fixedExpenseMessageBox = document.getElementById('fixed-expense-message-box');
+
+
+        // Elementi DOM per la navigazione mesi
+        const currentMonthDisplay = document.getElementById('current-month-display');
+        const prevMonthBtn = document.getElementById('prev-month-btn');
+        const nextMonthBtn = document.getElementById('next-month-btn');
+
+        // Oggetto per memorizzare i dati mensili (transazioni, saldo pregresso, entrata fissa, saldi PayPal/Revolut, spese fisse)
+        // La chiave sarà nel formato 'YYYY-MM'
+        let monthlyData = {};
+
+        // Data corrente per determinare il mese visualizzato
+        let currentMonth = new Date(); // Inizializza con la data corrente
+
+        // Variabile per tenere traccia dell'elemento trascinato
+        let draggedItem = null;
+
+        /**
+         * Mostra un messaggio temporaneo all'utente.
+         * @param {string} message - Il messaggio da visualizzare.
+         * @param {boolean} isError - Se true, il messaggio sarà di errore.
+         * @param {HTMLElement} targetElement - L'elemento DOM in cui mostrare il messaggio.
+         */
+        const showMessage = (message, isError = false, targetElement = fixedExpenseMessageBox) => {
+            targetElement.textContent = message;
+            targetElement.classList.remove('hidden', 'error');
+            if (isError) {
+                targetElement.classList.add('error');
+            }
+            setTimeout(() => {
+                targetElement.classList.add('hidden');
+            }, 3000);
+        };
+
+        /**
+         * Formatta una data nel formato 'YYYY-MM'.
+         * @param {Date} date - La data da formattare.
+         * @returns {string} La data formattata come 'YYYY-MM'.
+         */
+        const getMonthKey = (date) => {
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            return `${year}-${month}`;
+        };
+
+        /**
+         * Formatta una date per la visualizzazione del mese (es. "Luglio 2025").
+         * @param {Date} date - La data da formattare.
+         * @returns {string} La data formattata per la visualizzazione.
+         */
+        const formatMonthDisplay = (date) => {
+            const options = { year: 'numeric', month: 'long' };
+            return date.toLocaleDateString('it-IT', options);
+        };
+
+        /**
+         * Carica tutti i dati mensili dal localStorage.
+         * Se non ci sono dati, inizializza un oggetto vuoto.
+         */
+        const loadMonthlyData = () => {
+            const storedData = localStorage.getItem('budgetMonthlyData');
+            if (storedData) {
+                try {
+                    monthlyData = JSON.parse(storedData);
+                } catch (e) {
+                    console.error("Errore nel parsing dei dati mensili da localStorage:", e);
+                    monthlyData = {}; // In caso di errore, resetta i dati
+                }
+            } else {
+                monthlyData = {};
+            }
+            renderCurrentMonthData(); // Renderizza i dati del mese corrente all'avvio
+        };
+
+        /**
+         * Salva tutti i dati mensili nel localStorage.
+         */
+        const saveMonthlyData = () => {
+            localStorage.setItem('budgetMonthlyData', JSON.stringify(monthlyData));
+        };
+
+        /**
+         * Inizializza i dati per un nuovo mese se non esistono.
+         * @param {string} monthKey - La chiave del mese (es. '2025-07').
+         */
+        const initializeMonthData = (monthKey) => {
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = {
+                    transactions: [],
+                    fixedExpenses: [], // Nuovo array per le spese fisse
+                    previousMonthBalance: 0,
+                    fixedMonthlyIncome: 0,
+                    paypalBalance: 0, // Nuovo campo
+                    revolutBalance: 0  // Nuovo campo
+                };
+            }
+        };
+
+        /**
+         * Aggiorna il saldo totale e lo visualizza per il mese corrente.
+         */
+        const updateBalance = () => {
+            const monthKey = getMonthKey(currentMonth);
+            initializeMonthData(monthKey); // Assicurati che i dati per il mese esistano
+
+            const currentMonthTransactions = monthlyData[monthKey].transactions;
+            const currentMonthFixedExpenses = monthlyData[monthKey].fixedExpenses;
+
+            const previousBalance = parseFloat(monthlyData[monthKey].previousMonthBalance) || 0;
+            const fixedIncome = parseFloat(monthlyData[monthKey].fixedMonthlyIncome) || 0;
+            const paypalBalance = parseFloat(monthlyData[monthKey].paypalBalance) || 0;
+            const revolutBalance = parseFloat(monthlyData[monthKey].revolutBalance) || 0;
+
+            const transactionsTotal = currentMonthTransactions.reduce((acc, transaction) => {
+                return transaction.type === 'income' ? acc + transaction.amount : acc - transaction.amount;
+            }, 0);
+
+            const fixedExpensesTotal = currentMonthFixedExpenses.reduce((acc, expense) => acc + expense.amount, 0);
+
+            // Calcolo del saldo totale
+            const totalBalance = previousBalance + fixedIncome + paypalBalance + revolutBalance + transactionsTotal - fixedExpensesTotal;
+
+            currentBalanceDisplay.textContent = `€ ${totalBalance.toFixed(2)}`;
+
+            // Aggiorna la classe per il colore del saldo
+            currentBalanceDisplay.classList.remove('positive', 'negative');
+            if (totalBalance > 0) {
+                currentBalanceDisplay.classList.add('positive');
+            } else if (totalBalance < 0) {
+                currentBalanceDisplay.classList.add('negative');
+            }
+        };
+
+        /**
+         * Aggiunge una nuova transazione all'array del mese corretto e la salva.
+         * @param {string} description - Descrizione della transazione.
+         * @param {number} amount - Importo della transazione.
+         * @param {string} type - Tipo di transazione ('income' o 'expense').
+         * @param {string} dateString - Data della transazione nel formato 'YYYY-MM-DD'.
+         */
+        const addTransaction = (description, amount, type, dateString) => {
+            const transactionDate = new Date(dateString);
+            const monthKey = getMonthKey(transactionDate);
+            initializeMonthData(monthKey); // Assicurati che i dati per il mese esistano
+
+            const newTransaction = {
+                id: Date.now(), // ID unico basato sul timestamp
+                description,
+                amount: parseFloat(amount), // Assicurati che sia un numero
+                type,
+                date: dateString // Salva la data completa
+            };
+            monthlyData[monthKey].transactions.push(newTransaction);
+            saveMonthlyData(); // Salva dopo l'aggiunta
+
+            // Se la transazione è per il mese attualmente visualizzato, aggiorna l'UI
+            if (monthKey === getMonthKey(currentMonth)) {
+                renderTransactions(); // Renderizza nuovamente la lista
+                updateBalance(); // Aggiorna il saldo
+            }
+        };
+
+        /**
+         * Elimina una transazione dall'array del mese corretto in base all'ID.
+         * @param {number} id - ID della transazione da eliminare.
+         * @param {string} monthKey - La chiave del mese a cui appartiene la transazione.
+         */
+        const deleteTransaction = (id, monthKey) => {
+            initializeMonthData(monthKey); // Assicurati che i dati per il mese esistano
+            monthlyData[monthKey].transactions = monthlyData[monthKey].transactions.filter(transaction => transaction.id !== id);
+            saveMonthlyData(); // Salva dopo l'eliminazione
+
+            // Se la transazione è per il mese attualmente visualizzato, aggiorna l'UI
+            if (monthKey === getMonthKey(currentMonth)) {
+                renderTransactions(); // Renderizza nuovamente la lista
+                updateBalance(); // Aggiorna il saldo
+            }
+        };
+
+        /**
+         * Renderizza tutte le transazioni nella lista per il mese corrente.
+         */
+        const renderTransactions = () => {
+            transactionsList.innerHTML = ''; // Pulisce la lista esistente
+            const monthKey = getMonthKey(currentMonth);
+            initializeMonthData(monthKey); // Assicurati che i dati per il mese esistano
+
+            const currentMonthTransactions = monthlyData[monthKey].transactions;
+
+            if (currentMonthTransactions.length === 0) {
+                noTransactionsMessage.style.display = 'block'; // Mostra il messaggio se non ci sono transazioni
+            } else {
+                noTransactionsMessage.style.display = 'none'; // Nasconde il messaggio se ci sono transazioni
+                currentMonthTransactions.forEach(transaction => {
+                    const transactionItem = document.createElement('div');
+                    transactionItem.classList.add('transaction-item', 'rounded-lg', 'shadow-sm', 'flex', 'items-center', 'py-3', 'px-4', 'mb-3');
+                    transactionItem.classList.add(transaction.type); // Aggiunge classe 'income' o 'expense' per lo stile
+
+                    const sign = transaction.type === 'income' ? '+' : '-';
+                    const amountClass = transaction.type === 'income' ? 'text-green-600' : 'text-red-600';
+
+                    // Formatta la data per la visualizzazione
+                    const displayDate = new Date(transaction.date).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
+
+                    transactionItem.innerHTML = `
+                        <span class="description text-gray-800 font-medium">${transaction.description} (${displayDate})</span>
+                        <span class="amount font-bold ml-auto mr-4 ${amountClass}">${sign} €${transaction.amount.toFixed(2)}</span>
+                        <button class="btn btn-danger text-white bg-red-500 hover:bg-red-600 px-3 py-1 rounded-md text-sm"
+                                onclick="deleteTransaction(${transaction.id}, '${monthKey}')">
+                            Elimina
+                        </button>
+                    `;
+                    transactionsList.appendChild(transactionItem);
+                });
+            }
+        };
+
+        /**
+         * Aggiunge una nuova spesa fissa all'array del mese corretto e la salva.
+         * @param {string} description - Descrizione della spesa fissa.
+         * @param {number} amount - Importo della spesa fissa.
+         */
+        const addFixedExpense = (description, amount) => {
+            const monthKey = getMonthKey(currentMonth);
+            initializeMonthData(monthKey);
+
+            const newFixedExpense = {
+                id: Date.now(),
+                description,
+                amount: parseFloat(amount)
+            };
+            monthlyData[monthKey].fixedExpenses.push(newFixedExpense);
+            saveMonthlyData();
+            renderFixedExpenses();
+            updateBalance();
+        };
+
+        /**
+         * Elimina una spesa fissa dall'array del mese corretto in base all'ID.
+         * @param {number} id - ID della spesa fissa da eliminare.
+         * @param {string} monthKey - La chiave del mese a cui appartiene la spesa fissa.
+         */
+        const deleteFixedExpense = (id, monthKey) => {
+            initializeMonthData(monthKey);
+            monthlyData[monthKey].fixedExpenses = monthlyData[monthKey].fixedExpenses.filter(expense => expense.id !== id);
+            saveMonthlyData();
+            renderFixedExpenses();
+            updateBalance();
+        };
+
+        /**
+         * Abilita la modalità di modifica per una spesa fissa.
+         * @param {number} id - ID della spesa fissa da modificare.
+         * @param {string} monthKey - La chiave del mese a cui appartiene la spesa fissa.
+         */
+        const editFixedExpense = (id, monthKey) => {
+            const expenseItem = document.querySelector(`.fixed-expense-item[data-id="${id}"]`);
+            if (!expenseItem) return;
+
+            const expense = monthlyData[monthKey].fixedExpenses.find(e => e.id === id);
+            if (!expense) return;
+
+            expenseItem.innerHTML = `
+                <input type="text" class="edit-input w-full md:w-1/2" id="edit-description-${id}" value="${expense.description}" />
+                <input type="text" class="edit-input w-full md:w-1/3" id="edit-amount-${id}" value="${expense.amount.toFixed(2)}" />
+                <div class="edit-buttons flex gap-2 ml-auto">
+                    <button class="btn btn-success px-3 py-1 text-sm" onclick="saveEditedFixedExpense(${id}, '${monthKey}')">Salva</button>
+                    <button class="btn btn-info px-3 py-1 text-sm" onclick="cancelEditFixedExpense(${id}, '${monthKey}')">Annulla</button>
+                </div>
+            `;
+            // Disabilita il drag and drop mentre si è in modalità modifica
+            expenseItem.draggable = false;
+        };
+
+        /**
+         * Salva le modifiche di una spesa fissa, includendo la funzionalità calcolatrice.
+         * @param {number} id - ID della spesa fissa da salvare.
+         * @param {string} monthKey - La chiave del mese a cui appartiene la spesa fissa.
+         */
+        const saveEditedFixedExpense = (id, monthKey) => {
+            const descriptionInput = document.getElementById(`edit-description-${id}`);
+            const amountInput = document.getElementById(`edit-amount-${id}`);
+
+            const newDescription = descriptionInput.value.trim();
+            let newAmount = amountInput.value.trim();
+
+            // Funzionalità calcolatrice: tenta di valutare l'espressione
+            try {
+                // Rimuovi spazi e sostituisci virgola con punto per i decimali
+                newAmount = newAmount.replace(/\s/g, '').replace(/,/g, '.');
+                // Valida che l'input contenga solo numeri e operatori base
+                if (!/^[0-9+\-*/.]+$/.test(newAmount)) {
+                    throw new Error("Formato non valido. Inserisci solo numeri e operatori (+-*/).");
+                }
+                newAmount = eval(newAmount); // Valuta l'espressione
+                if (isNaN(newAmount)) {
+                    throw new Error("Risultato non numerico.");
+                }
+            } catch (e) {
+                console.error("Errore di calcolo:", e.message);
+                showMessage(`Errore nel calcolo dell'importo: ${e.message}`, true);
+                return; // Non salvare se c'è un errore
+            }
+
+            if (newDescription && !isNaN(newAmount) && newAmount > 0) {
+                const expenseIndex = monthlyData[monthKey].fixedExpenses.findIndex(e => e.id === id);
+                if (expenseIndex !== -1) {
+                    monthlyData[monthKey].fixedExpenses[expenseIndex].description = newDescription;
+                    monthlyData[monthKey].fixedExpenses[expenseIndex].amount = parseFloat(newAmount);
+                    saveMonthlyData();
+                    renderFixedExpenses(); // Rerenderizza per mostrare le modifiche
+                    updateBalance();
+                }
+            } else {
+                console.error("Per favore, inserisci una descrizione valida e un importo positivo.");
+                showMessage("Errore: Inserisci una descrizione e un importo numerico valido (> 0).", true);
+            }
+        };
+
+        /**
+         * Annulla la modifica di una spesa fissa e ripristina la visualizzazione originale.
+         * @param {number} id - ID della spesa fissa da annullare.
+         * @param {string} monthKey - La chiave del mese a cui appartiene la spesa fissa.
+         */
+        const cancelEditFixedExpense = (id, monthKey) => {
+            renderFixedExpenses(); // Semplicemente ri-renderizza la lista per ripristinare lo stato
+        };
+
+
+        /**
+         * Renderizza tutte le spese fisse nella lista per il mese corrente.
+         */
+        const renderFixedExpenses = () => {
+            fixedExpensesList.innerHTML = '';
+            const monthKey = getMonthKey(currentMonth);
+            initializeMonthData(monthKey);
+
+            const currentMonthFixedExpenses = monthlyData[monthKey].fixedExpenses;
+
+            if (currentMonthFixedExpenses.length === 0) {
+                noFixedExpensesMessage.style.display = 'block';
+            } else {
+                noFixedExpensesMessage.style.display = 'none';
+                currentMonthFixedExpenses.forEach(expense => {
+                    const fixedExpenseItem = document.createElement('div');
+                    fixedExpenseItem.classList.add('fixed-expense-item', 'rounded-lg', 'shadow-sm', 'flex', 'items-center', 'py-3', 'px-4', 'mb-3');
+                    fixedExpenseItem.classList.add('expense'); // Stile rosso come le uscite
+                    fixedExpenseItem.dataset.id = expense.id; // Aggiunge un data-id per facilitare la selezione
+                    fixedExpenseItem.draggable = true; // Rende l'elemento trascinabile
+
+                    fixedExpenseItem.innerHTML = `
+                        <span class="description text-gray-800 font-medium">${expense.description}</span>
+                        <span class="amount font-bold ml-auto mr-4 text-red-600">- €${expense.amount.toFixed(2)}</span>
+                        <div class="flex gap-2">
+                            <button class="btn btn-info px-3 py-1 text-sm"
+                                    onclick="editFixedExpense(${expense.id}, '${monthKey}')">
+                                Modifica
+                            </button>
+                            <button class="btn btn-danger px-3 py-1 text-sm"
+                                    onclick="deleteFixedExpense(${expense.id}, '${monthKey}')">
+                                Elimina
+                            </button>
+                        </div>
+                    `;
+                    fixedExpensesList.appendChild(fixedExpenseItem);
+                });
+
+                // Aggiungi i listener per il drag and drop dopo aver renderizzato gli elementi
+                addDragAndDropListeners();
+            }
+        };
+
+        /**
+         * Aggiunge i listener per il drag and drop agli elementi delle spese fisse.
+         */
+        const addDragAndDropListeners = () => {
+            const items = fixedExpensesList.querySelectorAll('.fixed-expense-item');
+
+            items.forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    draggedItem = item;
+                    setTimeout(() => item.classList.add('dragging'), 0); // Aggiungi la classe dopo un breve ritardo
+                    e.dataTransfer.setData('text/plain', item.dataset.id); // Imposta l'ID dell'elemento trascinato
+                });
+
+                item.addEventListener('dragend', () => {
+                    draggedItem.classList.remove('dragging');
+                    draggedItem = null;
+                    // Dopo il dragend, l'ordine nel DOM è cambiato, quindi aggiorna l'array in monthlyData
+                    updateFixedExpensesOrderInModel();
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault(); // Permette il drop
+                    const draggingClass = fixedExpensesList.querySelector('.dragging');
+                    if (draggingClass && draggingClass !== item) {
+                        const boundingBox = item.getBoundingClientRect();
+                        const offset = boundingBox.y + (boundingBox.height / 2);
+                        if (e.clientY < offset) {
+                            fixedExpensesList.insertBefore(draggingClass, item);
+                        } else {
+                            fixedExpensesList.insertBefore(draggingClass, item.nextSibling);
+                        }
+                    }
+                });
+            });
+        };
+
+        /**
+         * Aggiorna l'ordine delle spese fisse nell'array del modello (monthlyData)
+         * in base all'ordine attuale nel DOM, e salva.
+         */
+        const updateFixedExpensesOrderInModel = () => {
+            const monthKey = getMonthKey(currentMonth);
+            initializeMonthData(monthKey);
+
+            const orderedIds = Array.from(fixedExpensesList.children)
+                                  .filter(el => el.classList.contains('fixed-expense-item')) // Filtra solo gli elementi delle spese
+                                  .map(el => parseInt(el.dataset.id));
+
+            const newOrderedExpenses = [];
+            orderedIds.forEach(id => {
+                const expense = monthlyData[monthKey].fixedExpenses.find(e => e.id === id);
+                if (expense) {
+                    newOrderedExpenses.push(expense);
+                }
+            });
+            monthlyData[monthKey].fixedExpenses = newOrderedExpenses;
+            saveMonthlyData();
+        };
+
+        /**
+         * Importa le spese fisse dal mese precedente al mese corrente.
+         */
+        const importFixedExpensesFromPreviousMonth = () => {
+            const currentMonthKey = getMonthKey(currentMonth);
+            const prevMonthDate = new Date(currentMonth);
+            prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+            const prevMonthKey = getMonthKey(prevMonthDate);
+
+            initializeMonthData(currentMonthKey);
+            initializeMonthData(prevMonthKey); // Assicurati che il mese precedente sia inizializzato
+
+            const previousMonthExpenses = monthlyData[prevMonthKey].fixedExpenses;
+
+            if (previousMonthExpenses && previousMonthExpenses.length > 0) {
+                let importedCount = 0;
+                previousMonthExpenses.forEach(expense => {
+                    // Controlla se la spesa esiste già nel mese corrente per evitare duplicati esatti
+                    const exists = monthlyData[currentMonthKey].fixedExpenses.some(
+                        e => e.description === expense.description && e.amount === expense.amount
+                    );
+                    if (!exists) {
+                        // Crea una nuova spesa con un nuovo ID per il mese corrente
+                        monthlyData[currentMonthKey].fixedExpenses.push({
+                            id: Date.now() + importedCount, // Nuovo ID unico
+                            description: expense.description,
+                            amount: expense.amount
+                        });
+                        importedCount++;
+                    }
+                });
+
+                if (importedCount > 0) {
+                    saveMonthlyData();
+                    renderFixedExpenses();
+                    updateBalance();
+                    showMessage(`Importate ${importedCount} spese fisse dal mese precedente.`);
+                } else {
+                    showMessage("Nessuna nuova spesa fissa da importare o già presenti.", false);
+                }
+            } else {
+                showMessage("Nessuna spesa fissa trovata nel mese precedente da importare.", false);
+            }
+        };
+
+
+        /**
+         * Renderizza tutti i dati per il mese corrente (saldo pregresso, entrata fissa, saldi PayPal/Revolut, transazioni, spese fisse).
+         */
+        const renderCurrentMonthData = () => {
+            const monthKey = getMonthKey(currentMonth);
+            initializeMonthData(monthKey); // Assicurati che i dati per il mese esistano
+
+            // Aggiorna gli input con i valori del mese corrente
+            previousMonthBalanceInput.value = (monthlyData[monthKey].previousMonthBalance || 0).toFixed(2);
+            fixedMonthlyIncomeInput.value = (monthlyData[monthKey].fixedMonthlyIncome || 0).toFixed(2);
+            paypalBalanceInput.value = (monthlyData[monthKey].paypalBalance || 0).toFixed(2);
+            revolutBalanceInput.value = (monthlyData[monthKey].revolutBalance || 0).toFixed(2);
+
+            // Aggiorna la visualizzazione del mese
+            currentMonthDisplay.textContent = formatMonthDisplay(currentMonth);
+
+            renderTransactions(); // Renderizza le transazioni del mese
+            renderFixedExpenses(); // Renderizza le spese fisse del mese
+            updateBalance(); // Aggiorna il saldo
+        };
+
+        // Gestore dell'evento submit del form Transazioni
+        transactionForm.addEventListener('submit', (e) => {
+            e.preventDefault(); // Previene il ricaricamento della pagina
+
+            const description = descriptionInput.value.trim();
+            const amount = parseFloat(amountInput.value);
+            const type = typeSelect.value;
+            const date = transactionDateInput.value;
+
+            if (description && !isNaN(amount) && amount > 0 && date) {
+                addTransaction(description, amount, type, date);
+                // Resetta il form
+                descriptionInput.value = '';
+                amountInput.value = '';
+                typeSelect.value = 'income'; // Reset al valore predefinito
+                // transactionDateInput.value = new Date().toISOString().split('T')[0]; // Reset alla data corrente
+            } else {
+                console.error("Per favore, inserisci una descrizione, un importo positivo e una data.");
+                showMessage("Errore: Inserisci una descrizione, un importo numerico valido (> 0) e una data.", true, transactionForm);
+            }
+        });
+
+        // Gestore dell'evento submit del form Spese Fisse
+        fixedExpenseForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const description = fixedExpenseDescriptionInput.value.trim();
+            const amount = parseFloat(fixedExpenseAmountInput.value);
+
+            if (description && !isNaN(amount) && amount > 0) {
+                addFixedExpense(description, amount);
+                fixedExpenseDescriptionInput.value = '';
+                fixedExpenseAmountInput.value = '';
+            } else {
+                console.error("Per favore, inserisci una descrizione valida e un importo positivo per la spesa fissa.");
+                showMessage("Errore: Inserisci una descrizione e un importo numerico valido (> 0) per la spesa fissa.", true, fixedExpenseForm);
+            }
+        });
+
+        // Gestori degli eventi per i campi Saldo Pregresso, Entrata Fissa, PayPal e Revolut
+        previousMonthBalanceInput.addEventListener('change', (e) => {
+            const monthKey = getMonthKey(currentMonth);
+            initializeMonthData(monthKey);
+            monthlyData[monthKey].previousMonthBalance = parseFloat(e.target.value) || 0;
+            saveMonthlyData();
+            updateBalance();
+        });
+
+        fixedMonthlyIncomeInput.addEventListener('change', (e) => {
+            const monthKey = getMonthKey(currentMonth);
+            initializeMonthData(monthKey);
+            monthlyData[monthKey].fixedMonthlyIncome = parseFloat(e.target.value) || 0;
+            saveMonthlyData();
+            updateBalance();
+        });
+
+        paypalBalanceInput.addEventListener('change', (e) => {
+            const monthKey = getMonthKey(currentMonth);
+            initializeMonthData(monthKey);
+            monthlyData[monthKey].paypalBalance = parseFloat(e.target.value) || 0;
+            saveMonthlyData();
+            updateBalance();
+        });
+
+        revolutBalanceInput.addEventListener('change', (e) => {
+            const monthKey = getMonthKey(currentMonth);
+            initializeMonthData(monthKey);
+            monthlyData[monthKey].revolutBalance = parseFloat(e.target.value) || 0;
+            saveMonthlyData();
+            updateBalance();
+        });
+
+        // Gestori per la navigazione tra i mesi
+        prevMonthBtn.addEventListener('click', () => {
+            currentMonth.setMonth(currentMonth.getMonth() - 1);
+            renderCurrentMonthData();
+        });
+
+        nextMonthBtn.addEventListener('click', () => {
+            currentMonth.setMonth(currentMonth.getMonth() + 1);
+            renderCurrentMonthData();
+        });
+
+        // Gestore per il pulsante di importazione spese fisse
+        importFixedExpensesBtn.addEventListener('click', importFixedExpensesFromPreviousMonth);
+
+        // Imposta la data di default nel campo data transazione all'avvio
+        const today = new Date();
+        transactionDateInput.value = today.toISOString().split('T')[0];
+
+        // Carica i dati all'avvio dell'app
+        window.onload = loadMonthlyData;
+    </script>
+</body>
+</html>
