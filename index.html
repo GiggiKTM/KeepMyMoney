@@ -93,6 +93,43 @@
         .btn-secondary:hover {
             background-color: #4b5563;
         }
+        .btn-nav { /* Stile per i pulsanti di navigazione */
+            background-color: #4f46e5; /* Indaco */
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-weight: 700;
+            text-align: center;
+            width: 100%;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .btn-nav:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #4f46e5; /* Indaco */
+            cursor: pointer;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+            z-index: 10; /* Assicura che sia sopra gli altri elementi */
+        }
+        .back-button:hover {
+            background-color: rgba(79, 70, 229, 0.1); /* Leggero sfondo al hover */
+        }
+        /* Rimuovi il padding dal container quando c'è il back button per allinearlo meglio */
+        .container.has-back-button {
+            padding-top: 60px; /* Spazio per il back button */
+            position: relative; /* Per posizionare il back button */
+        }
+
 
         .transaction-item, .fixed-expense-item {
             display: flex;
@@ -256,42 +293,49 @@
             background-color: #fee2e2; /* Rosso chiaro */
             color: #991b1b; /* Rosso scuro */
         }
+
+        /* Nascondi le pagine per default, verranno mostrate tramite JS */
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" id="main-container">
         <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">Gestore del Budget</h1>
 
-        <!-- Sezione Importa/Esporta Dati -->
-        <details class="mb-8">
-            <summary>Importa/Esporta Dati</summary>
-            <div class="space-y-4 pt-4">
-                <button id="export-csv-btn" class="btn btn-primary w-full bg-purple-600 hover:bg-purple-700">Esporta Dati (CSV)</button>
-                <div class="input-group flex flex-col md:flex-row items-center gap-4">
-                    <label for="import-csv-file" class="block text-gray-700 text-sm font-bold mb-2 md:mb-0">Importa da CSV:</label>
-                    <input type="file" id="import-csv-file" accept=".csv" class="flex-grow shadow appearance-none border rounded-lg py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
-                    <button id="import-csv-btn" class="btn btn-secondary bg-blue-600 hover:bg-blue-700 text-white">Importa</button>
-                </div>
-                <div id="import-export-message-box" class="message-box hidden"></div>
+        <!-- Homepage (Dashboard) -->
+        <section id="homepage-page" class="page active">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Riepilogo Mensile</h2>
+            <!-- Sezione Navigazione Mese -->
+            <div class="month-navigation">
+                <button id="prev-month-btn-home">&lt;</button>
+                <span id="current-month-display-home" class="text-lg font-semibold">Luglio 2025</span>
+                <button id="next-month-btn-home">&gt;</button>
             </div>
-        </details>
 
-        <!-- Sezione Navigazione Mese -->
-        <div class="month-navigation">
-            <button id="prev-month-btn">&lt;</button>
-            <span id="current-month-display" class="text-lg font-semibold">Luglio 2025</span>
-            <button id="next-month-btn">&gt;</button>
-        </div>
+            <!-- Sezione Saldo Attuale -->
+            <div class="balance-display mb-8 rounded-lg p-4 shadow-md bg-blue-50">
+                <h2 class="text-xl font-semibold text-gray-700">Saldo Attuale:</h2>
+                <p id="current-balance-home" class="text-4xl font-extrabold text-blue-700 mt-2">€ 0.00</p>
+            </div>
 
-        <!-- Sezione Saldo Attuale -->
-        <div class="balance-display mb-8 rounded-lg p-4 shadow-md bg-blue-50">
-            <h2 class="text-xl font-semibold text-gray-700">Saldo Attuale:</h2>
-            <p id="current-balance" class="text-4xl font-extrabold text-blue-700 mt-2">€ 0.00</p>
-        </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                <button class="btn btn-nav" onclick="navigateTo('details-page')">Dettagli Saldo</button>
+                <button class="btn btn-nav" onclick="navigateTo('add-transaction-page')">Aggiungi Transazione</button>
+                <button class="btn btn-nav" onclick="navigateTo('transactions-history-page')">Storico Transazioni</button>
+                <button class="btn btn-nav" onclick="navigateTo('fixed-expenses-page')">Gestisci Spese Fisse</button>
+                <button class="btn btn-nav" onclick="navigateTo('import-export-page')">Importa/Esporta Dati</button>
+            </div>
+        </section>
 
-        <!-- Dettagli Saldo e Entrate (Richiudibile) -->
-        <details open class="mb-8">
-            <summary>Dettagli Saldo e Entrate</summary>
+        <!-- Dettagli Saldo e Entrate Page -->
+        <section id="details-page" class="page">
+            <button class="back-button" onclick="navigateTo('homepage-page')">&lt;</button>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Dettagli Saldo e Entrate</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                 <div class="input-group">
                     <label for="previous-month-balance" class="block text-gray-700 text-sm font-bold mb-2">Saldo Pregresso Mese Precedente (€):</label>
@@ -314,77 +358,113 @@
                            class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
                 </div>
             </div>
-        </details>
+        </section>
 
-        <!-- Form per Aggiungere Nuove Transazioni -->
-        <h2 class="text-2xl font-semibold text-gray-800 mb-6">Aggiungi Nuova Transazione</h2>
-        <form id="transaction-form" class="space-y-5">
-            <div class="input-group">
-                <label for="transaction-date" class="block text-gray-700 text-sm font-bold mb-2">Data Transazione:</label>
-                <input type="date" id="transaction-date" required
-                       class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
-            </div>
-            <div class="input-group">
-                <label for="description" class="block text-gray-700 text-sm font-bold mb-2">Descrizione:</label>
-                <input type="text" id="description" placeholder="Es. Stipendio, Affitto, Spesa" required
-                       class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
-            </div>
+        <!-- Aggiungi Nuova Transazione Page -->
+        <section id="add-transaction-page" class="page">
+            <button class="back-button" onclick="navigateTo('homepage-page')">&lt;</button>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Aggiungi Nuova Transazione</h2>
+            <form id="transaction-form" class="space-y-5">
+                <div class="input-group">
+                    <label for="transaction-date" class="block text-gray-700 text-sm font-bold mb-2">Data Transazione:</label>
+                    <input type="date" id="transaction-date" required
+                           class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+                </div>
+                <div class="input-group">
+                    <label for="description" class="block text-gray-700 text-sm font-bold mb-2">Descrizione:</label>
+                    <input type="text" id="description" placeholder="Es. Stipendio, Affitto, Spesa" required
+                           class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+                </div>
 
-            <div class="input-group">
-                <label for="amount" class="block text-gray-700 text-sm font-bold mb-2">Importo (€):</label>
-                <input type="number" id="amount" placeholder="Es. 100.00" step="0.01" required
-                       class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
-            </div>
+                <div class="input-group">
+                    <label for="amount" class="block text-gray-700 text-sm font-bold mb-2">Importo (€):</label>
+                    <input type="number" id="amount" placeholder="Es. 100.00" step="0.01" required
+                           class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+                </div>
 
-            <div class="input-group">
-                <label for="type" class="block text-gray-700 text-sm font-bold mb-2">Tipo:</label>
-                <select id="type" required
-                        class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
-                    <option value="income">Entrata</option>
-                    <option value="expense">Uscita</option>
-                </select>
-            </div>
+                <div class="input-group">
+                    <label for="type" class="block text-gray-700 text-sm font-bold mb-2">Tipo:</label>
+                    <select id="type" required
+                            class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+                        <option value="income">Entrata</option>
+                        <option value="expense">Uscita</option>
+                    </select>
+                </div>
 
-            <button type="submit"
-                    class="btn btn-primary w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200 ease-in-out transform hover:-translate-y-1">
-                Aggiungi Transazione
+                <button type="submit"
+                        class="btn btn-primary w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200 ease-in-out transform hover:-translate-y-1">
+                    Aggiungi Transazione
+                </button>
+            </form>
+            <div id="transaction-message-box" class="message-box hidden"></div>
+        </section>
+
+        <!-- Storico Transazioni Page -->
+        <section id="transactions-history-page" class="page">
+            <button class="back-button" onclick="navigateTo('homepage-page')">&lt;</button>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Storico Transazioni</h2>
+            <div class="month-navigation">
+                <button id="prev-month-btn-history">&lt;</button>
+                <span id="current-month-display-history" class="text-lg font-semibold">Luglio 2025</span>
+                <button id="next-month-btn-history">&gt;</button>
+            </div>
+            <div id="transactions-list" class="space-y-4">
+                <!-- Le transazioni verranno aggiunte qui tramite JavaScript -->
+                <p class="text-gray-500 text-center" id="no-transactions-message">Nessuna transazione ancora per questo mese. Aggiungine una!</p>
+            </div>
+        </section>
+
+        <!-- Spese Fisse Page -->
+        <section id="fixed-expenses-page" class="page">
+            <button class="back-button" onclick="navigateTo('homepage-page')">&lt;</button>
+            <h2 class="text-2xl font-semibold text-gray-800 mt-10 mb-6 text-center">Spese Fisse</h2>
+            <div class="month-navigation">
+                <button id="prev-month-btn-fixed">&lt;</button>
+                <span id="current-month-display-fixed" class="text-lg font-semibold">Luglio 2025</span>
+                <button id="next-month-btn-fixed">&gt;</button>
+            </div>
+            <button id="import-fixed-expenses-btn"
+                    class="btn btn-secondary w-full mb-6 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200 ease-in-out transform hover:-translate-y-1">
+                Importa Spese Fisse Mese Precedente
             </button>
-        </form>
-
-        <!-- Sezione Storico Transazioni -->
-        <h2 class="text-2xl font-semibold text-gray-800 mt-10 mb-6">Storico Transazioni</h2>
-        <div id="transactions-list" class="space-y-4">
-            <!-- Le transazioni verranno aggiunte qui tramite JavaScript -->
-            <p class="text-gray-500 text-center" id="no-transactions-message">Nessuna transazione ancora per questo mese. Aggiungine una!</p>
-        </div>
-
-        <!-- Sezione Spese Fisse -->
-        <h2 class="text-2xl font-semibold text-gray-800 mt-10 mb-6">Spese Fisse</h2>
-        <button id="import-fixed-expenses-btn"
-                class="btn btn-secondary w-full mb-6 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200 ease-in-out transform hover:-translate-y-1">
-            Importa Spese Fisse Mese Precedente
-        </button>
-        <div id="fixed-expense-message-box" class="message-box hidden"></div>
-        <form id="fixed-expense-form" class="space-y-5 mb-6">
-            <div class="input-group">
-                <label for="fixed-expense-description" class="block text-gray-700 text-sm font-bold mb-2">Descrizione Spesa Fissa:</label>
-                <input type="text" id="fixed-expense-description" placeholder="Es. Affitto, Abbonamento Netflix" required
-                       class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+            <div id="fixed-expense-message-box" class="message-box hidden"></div>
+            <form id="fixed-expense-form" class="space-y-5 mb-6">
+                <div class="input-group">
+                    <label for="fixed-expense-description" class="block text-gray-700 text-sm font-bold mb-2">Descrizione Spesa Fissa:</label>
+                    <input type="text" id="fixed-expense-description" placeholder="Es. Affitto, Abbonamento Netflix" required
+                           class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+                </div>
+                <div class="input-group">
+                    <label for="fixed-expense-amount" class="block text-gray-700 text-sm font-bold mb-2">Importo Spesa Fissa (€):</label>
+                    <input type="number" id="fixed-expense-amount" placeholder="Es. 50.00" step="0.01" required
+                           class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+                </div>
+                <button type="submit"
+                        class="btn btn-primary w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200 ease-in-out transform hover:-translate-y-1">
+                    Aggiungi Spesa Fissa
+                </button>
+            </form>
+            <div id="fixed-expenses-list" class="space-y-4">
+                <!-- Le spese fisse verranno aggiunte qui tramite JavaScript -->
+                <p class="text-gray-500 text-center" id="no-fixed-expenses-message">Nessuna spesa fissa ancora. Aggiungine una!</p>
             </div>
-            <div class="input-group">
-                <label for="fixed-expense-amount" class="block text-gray-700 text-sm font-bold mb-2">Importo Spesa Fissa (€):</label>
-                <input type="number" id="fixed-expense-amount" placeholder="Es. 50.00" step="0.01" required
-                       class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+        </section>
+
+        <!-- Importa/Esporta Dati Page -->
+        <section id="import-export-page" class="page">
+            <button class="back-button" onclick="navigateTo('homepage-page')">&lt;</button>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Importa/Esporta Dati</h2>
+            <div class="space-y-4 pt-4">
+                <button id="export-csv-btn" class="btn btn-primary w-full bg-purple-600 hover:bg-purple-700">Esporta Dati (CSV)</button>
+                <div class="input-group flex flex-col md:flex-row items-center gap-4">
+                    <label for="import-csv-file" class="block text-gray-700 text-sm font-bold mb-2 md:mb-0">Importa da CSV:</label>
+                    <input type="file" id="import-csv-file" accept=".csv" class="flex-grow shadow appearance-none border rounded-lg py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500">
+                    <button id="import-csv-btn" class="btn btn-secondary bg-blue-600 hover:bg-blue-700 text-white">Importa</button>
+                </div>
+                <div id="import-export-message-box" class="message-box hidden"></div>
             </div>
-            <button type="submit"
-                    class="btn btn-primary w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200 ease-in-out transform hover:-translate-y-1">
-                Aggiungi Spesa Fissa
-            </button>
-        </form>
-        <div id="fixed-expenses-list" class="space-y-4">
-            <!-- Le spese fisse verranno aggiunte qui tramite JavaScript -->
-            <p class="text-gray-500 text-center" id="no-fixed-expenses-message">Nessuna spesa fissa ancora. Aggiungine una!</p>
-        </div>
+        </section>
+
     </div>
 
     <script>
@@ -401,9 +481,9 @@
         const transactionDateInput = document.getElementById('transaction-date');
         const transactionsList = document.getElementById('transactions-list');
         const noTransactionsMessage = document.getElementById('no-transactions-message');
+        const transactionMessageBox = document.getElementById('transaction-message-box'); // New message box for transaction form
 
-        // Elementi DOM per il saldo e le entrate/saldi fissi
-        const currentBalanceDisplay = document.getElementById('current-balance');
+        // Elementi DOM per il saldo e le entrate/saldi fissi (on details page)
         const previousMonthBalanceInput = document.getElementById('previous-month-balance');
         const fixedMonthlyIncomeInput = document.getElementById('fixed-monthly-income');
         const paypalBalanceInput = document.getElementById('paypal-balance');
@@ -418,10 +498,21 @@
         const importFixedExpensesBtn = document.getElementById('import-fixed-expenses-btn');
         const fixedExpenseMessageBox = document.getElementById('fixed-expense-message-box');
 
-        // Elementi DOM per la navigazione mesi
-        const currentMonthDisplay = document.getElementById('current-month-display');
-        const prevMonthBtn = document.getElementById('prev-month-btn');
-        const nextMonthBtn = document.getElementById('next-month-btn');
+        // Elementi DOM per la navigazione mesi (presenti su più pagine)
+        const currentMonthDisplayHome = document.getElementById('current-month-display-home');
+        const prevMonthBtnHome = document.getElementById('prev-month-btn-home');
+        const nextMonthBtnHome = document.getElementById('next-month-btn-home');
+
+        const currentMonthDisplayHistory = document.getElementById('current-month-display-history');
+        const prevMonthBtnHistory = document.getElementById('prev-month-btn-history');
+        const nextMonthBtnHistory = document.getElementById('next-month-btn-history');
+
+        const currentMonthDisplayFixed = document.getElementById('current-month-display-fixed');
+        const prevMonthBtnFixed = document.getElementById('prev-month-btn-fixed');
+        const nextMonthBtnFixed = document.getElementById('next-month-btn-fixed');
+
+        const currentBalanceDisplayHome = document.getElementById('current-balance-home');
+
 
         // Elementi DOM per Import/Export
         const importCsvFileInput = document.getElementById('import-csv-file');
@@ -429,6 +520,8 @@
         const importCsvBtn = document.getElementById('import-csv-btn');
         const importExportMessageBox = document.getElementById('import-export-message-box');
 
+        // Main container to adjust padding for back button
+        const mainContainer = document.getElementById('main-container');
 
         // Oggetto per memorizzare i dati mensili (transazioni, saldo pregresso, entrata fissa, saldi PayPal/Revolut, spese fisse)
         // La chiave sarà nel formato 'YYYY-MM'
@@ -441,21 +534,53 @@
         let draggedItem = null;
         let selectedImportFile = null; // To store the file selected by the user
 
+        // Variabile per la pagina corrente
+        let currentPage = 'homepage-page';
+
         /**
          * Mostra un messaggio temporaneo all'utente.
          * @param {string} message - Il messaggio da visualizzare.
          * @param {boolean} isError - Se true, il messaggio sarà di errore.
          * @param {HTMLElement} targetElement - L'elemento DOM in cui mostrare il messaggio.
          */
-        const showMessage = (message, isError = false, targetElement = fixedExpenseMessageBox) => {
+        const showMessage = (message, isError = false, targetElement) => {
+            if (!targetElement) {
+                console.warn("No target element provided for showMessage. Message will not be displayed.");
+                return;
+            }
             targetElement.textContent = message;
             targetElement.classList.remove('hidden', 'error');
             if (isError) {
                 targetElement.classList.add('error');
+            } else {
+                targetElement.classList.add('success'); // Add a success class for non-error messages
             }
             setTimeout(() => {
                 targetElement.classList.add('hidden');
+                targetElement.classList.remove('success'); // Clean up success class
             }, 3000);
+        };
+
+        /**
+         * Naviga tra le diverse pagine dell'applicazione.
+         * @param {string} pageId - L'ID della pagina da visualizzare.
+         */
+        const navigateTo = (pageId) => {
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+            currentPage = pageId;
+
+            // Adjust container padding based on whether it's the homepage or not
+            if (pageId === 'homepage-page') {
+                mainContainer.classList.remove('has-back-button');
+            } else {
+                mainContainer.classList.add('has-back-button');
+            }
+
+            renderCurrentMonthData(); // Assicurati che i dati siano aggiornati quando si cambia pagina
         };
 
         /**
@@ -546,15 +671,18 @@
             // Calcolo del saldo totale
             const totalBalance = previousBalance + fixedIncome + paypalBalance + revolutBalance + transactionsTotal - fixedExpensesTotal;
 
-            currentBalanceDisplay.textContent = `€ ${totalBalance.toFixed(2)}`;
+            // Aggiorna tutti i display del saldo
+            currentBalanceDisplayHome.textContent = `€ ${totalBalance.toFixed(2)}`;
 
             // Aggiorna la classe per il colore del saldo
-            currentBalanceDisplay.classList.remove('positive', 'negative');
-            if (totalBalance > 0) {
-                currentBalanceDisplay.classList.add('positive');
-            } else if (totalBalance < 0) {
-                currentBalanceDisplay.classList.add('negative');
-            }
+            [currentBalanceDisplayHome].forEach(display => {
+                display.classList.remove('positive', 'negative');
+                if (totalBalance > 0) {
+                    display.classList.add('positive');
+                } else if (totalBalance < 0) {
+                    display.classList.add('negative');
+                }
+            });
         };
 
         /**
@@ -724,7 +852,7 @@
                 }
             } catch (e) {
                 console.error("Errore di calcolo:", e.message);
-                showMessage(`Errore nel calcolo dell'importo: ${e.message}`, true);
+                showMessage(`Errore nel calcolo dell'importo: ${e.message}`, true, fixedExpenseMessageBox);
                 return; // Non salvare se c'è un errore
             }
 
@@ -738,8 +866,8 @@
                     updateBalance();
                 }
             } else {
-                console.error("Per favore, inserisci una descrizione valida e un importo positivo.");
-                showMessage("Errore: Inserisci una descrizione e un importo numerico valido (> 0).", true);
+                console.error("Per favor, inserisci una descrizione valida e un importo positivo.");
+                showMessage("Errore: Inserisci una descrizione e un importo numerico valido (> 0).", true, fixedExpenseMessageBox);
             }
         };
 
@@ -891,12 +1019,12 @@
                     saveMonthlyData();
                     renderFixedExpenses();
                     updateBalance();
-                    showMessage(`Importate ${importedCount} spese fisse dal mese precedente.`);
+                    showMessage(`Importate ${importedCount} spese fisse dal mese precedente.`, false, fixedExpenseMessageBox);
                 } else {
-                    showMessage("Nessuna nuova spesa fissa da importare o già presenti.", false);
+                    showMessage("Nessuna nuova spesa fissa da importare o già presenti.", false, fixedExpenseMessageBox);
                 }
             } else {
-                showMessage("Nessuna spesa fissa trovata nel mese precedente da importare.", false);
+                showMessage("Nessuna spesa fissa trovata nel mese precedente da importare.", false, fixedExpenseMessageBox);
             }
         };
 
@@ -967,9 +1095,9 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                showImportExportMessage("Dati esportati con successo in budget_data.csv!");
+                showMessage("Dati esportati con successo in budget_data.csv!", false, importExportMessageBox);
             } else {
-                showImportExportMessage("Il tuo browser non supporta il download diretto del CSV.", true);
+                showMessage("Il tuo browser non supporta il download diretto del CSV.", true, importExportMessageBox);
             }
         };
 
@@ -1008,7 +1136,7 @@
          */
         const importFromCsv = (file) => {
             if (!file) {
-                showImportExportMessage("Nessun file selezionato.", true);
+                showMessage("Nessun file selezionato.", true, importExportMessageBox);
                 return;
             }
 
@@ -1017,7 +1145,7 @@
                 const text = e.target.result;
                 const lines = text.split('\n').filter(line => line.trim() !== '');
                 if (lines.length <= 1) { // Check for at least headers + one data row
-                    showImportExportMessage("Il file CSV è vuoto o contiene solo intestazioni.", true);
+                    showMessage("Il file CSV è vuoto o contiene solo intestazioni.", true, importExportMessageBox);
                     return;
                 }
 
@@ -1026,7 +1154,7 @@
 
                 // Basic header validation
                 if (headers.length !== expectedHeaders.length || !headers.every((h, i) => h === expectedHeaders[i])) {
-                    showImportExportMessage("Intestazioni CSV non valide. Assicurati che il file sia stato esportato da questa app.", true);
+                    showMessage("Intestazioni CSV non valide. Assicurati che il file sia stato esportato da questa app.", true, importExportMessageBox);
                     console.error("Expected headers:", expectedHeaders);
                     console.error("Found headers:", headers);
                     return;
@@ -1153,10 +1281,10 @@
 
                 saveMonthlyData();
                 renderCurrentMonthData();
-                showImportExportMessage("Dati importati con successo!");
+                showMessage("Dati importati con successo!", false, importExportMessageBox);
             };
             reader.onerror = () => {
-                showImportExportMessage("Errore durante la lettura del file.", true);
+                showMessage("Errore durante la lettura del file.", true, importExportMessageBox);
             };
             reader.readAsText(file);
         };
@@ -1169,18 +1297,30 @@
             const monthKey = getMonthKey(currentMonth);
             initializeMonthData(monthKey); // Assicurati che i dati per il mese esistano
 
-            // Aggiorna gli input con i valori del mese corrente
-            previousMonthBalanceInput.value = (monthlyData[monthKey].previousMonthBalance || 0).toFixed(2);
-            fixedMonthlyIncomeInput.value = (monthlyData[monthKey].fixedMonthlyIncome || 0).toFixed(2);
-            paypalBalanceInput.value = (monthlyData[monthKey].paypalBalance || 0).toFixed(2);
-            revolutBalanceInput.value = (monthlyData[monthKey].revolutBalance || 0).toFixed(2);
+            // Aggiorna gli input con i valori del mese corrente (solo se la pagina è attiva)
+            if (currentPage === 'details-page') {
+                previousMonthBalanceInput.value = (monthlyData[monthKey].previousMonthBalance || 0).toFixed(2);
+                fixedMonthlyIncomeInput.value = (monthlyData[monthKey].fixedMonthlyIncome || 0).toFixed(2);
+                paypalBalanceInput.value = (monthlyData[monthKey].paypalBalance || 0).toFixed(2);
+                revolutBalanceInput.value = (monthlyData[monthKey].revolutBalance || 0).toFixed(2);
+            }
 
-            // Aggiorna la visualizzazione del mese
-            currentMonthDisplay.textContent = formatMonthDisplay(currentMonth);
+            // Aggiorna la visualizzazione del mese su tutte le sezioni di navigazione
+            const formattedMonth = formatMonthDisplay(currentMonth);
+            currentMonthDisplayHome.textContent = formattedMonth;
+            currentMonthDisplayHistory.textContent = formattedMonth;
+            currentMonthDisplayFixed.textContent = formattedMonth;
 
-            renderTransactions(); // Renderizza le transazioni del mese
-            renderFixedExpenses(); // Renderizza le spese fisse del mese
-            updateBalance(); // Aggiorna il saldo
+            // Renderizza le liste e aggiorna il saldo solo se la pagina è attiva
+            if (currentPage === 'homepage-page') {
+                updateBalance(); // Aggiorna il saldo per la homepage
+            } else if (currentPage === 'transactions-history-page') {
+                renderTransactions(); // Renderizza le transazioni del mese
+            } else if (currentPage === 'fixed-expenses-page') {
+                renderFixedExpenses(); // Renderizza le spese fisse del mese
+            }
+            // Update balance is called from other pages' event listeners as well
+            updateBalance(); // Always update global balance display
         };
 
         // Gestore dell'evento submit del form Transazioni
@@ -1199,9 +1339,10 @@
                 amountInput.value = '';
                 typeSelect.value = 'income'; // Reset al valore predefinito
                 // transactionDateInput.value = new Date().toISOString().split('T')[0]; // Reset alla data corrente
+                showMessage("Transazione aggiunta con successo!", false, transactionMessageBox);
             } else {
                 console.error("Per favore, inserisci una descrizione, un importo positivo e una data.");
-                showMessage("Errore: Inserisci una descrizione, un importo numerico valido (> 0) e una data.", true, transactionForm);
+                showMessage("Errore: Inserisci una descrizione, un importo numerico valido (> 0) e una data.", true, transactionMessageBox);
             }
         });
 
@@ -1216,9 +1357,10 @@
                 addFixedExpense(description, amount);
                 fixedExpenseDescriptionInput.value = '';
                 fixedExpenseAmountInput.value = '';
+                showMessage("Spesa fissa aggiunta con successo!", false, fixedExpenseMessageBox);
             } else {
                 console.error("Per favore, inserisci una descrizione valida e un importo positivo per la spesa fissa.");
-                showMessage("Errore: Inserisci una descrizione e un importo numerico valido (> 0) per la spesa fissa.", true, fixedExpenseForm);
+                showMessage("Errore: Inserisci una descrizione e un importo numerico valido (> 0) per la spesa fissa.", true, fixedExpenseMessageBox);
             }
         });
 
@@ -1256,12 +1398,29 @@
         });
 
         // Gestori per la navigazione tra i mesi
-        prevMonthBtn.addEventListener('click', () => {
+        prevMonthBtnHome.addEventListener('click', () => {
             currentMonth.setMonth(currentMonth.getMonth() - 1);
             renderCurrentMonthData();
         });
+        nextMonthBtnHome.addEventListener('click', () => {
+            currentMonth.setMonth(currentMonth.getMonth() + 1);
+            renderCurrentMonthData();
+        });
 
-        nextMonthBtn.addEventListener('click', () => {
+        prevMonthBtnHistory.addEventListener('click', () => {
+            currentMonth.setMonth(currentMonth.getMonth() - 1);
+            renderCurrentMonthData();
+        });
+        nextMonthBtnHistory.addEventListener('click', () => {
+            currentMonth.setMonth(currentMonth.getMonth() + 1);
+            renderCurrentMonthData();
+        });
+
+        prevMonthBtnFixed.addEventListener('click', () => {
+            currentMonth.setMonth(currentMonth.getMonth() - 1);
+            renderCurrentMonthData();
+        });
+        nextMonthBtnFixed.addEventListener('click', () => {
             currentMonth.setMonth(currentMonth.getMonth() + 1);
             renderCurrentMonthData();
         });
@@ -1273,9 +1432,9 @@
         importCsvFileInput.addEventListener('change', (e) => {
             selectedImportFile = e.target.files[0];
             if (selectedImportFile) {
-                showImportExportMessage(`File selezionato: ${selectedImportFile.name}`, false, importExportMessageBox);
+                showMessage(`File selezionato: ${selectedImportFile.name}`, false, importExportMessageBox);
             } else {
-                showImportExportMessage("Nessun file selezionato.", true, importExportMessageBox);
+                showMessage("Nessun file selezionato.", true, importExportMessageBox);
             }
         });
 
@@ -1284,12 +1443,19 @@
             if (selectedImportFile) {
                 importFromCsv(selectedImportFile);
             } else {
-                showImportExportMessage("Seleziona prima un file CSV da importare.", true, importExportMessageBox);
+                showMessage("Seleziona prima un file CSV da importare.", true, importExportMessageBox);
             }
         });
 
         // Event listener for export button click
         exportCsvBtn.addEventListener('click', exportToCsv);
+
+        // Gestori per la navigazione principale (buttons on homepage)
+        document.getElementById('nav-details').addEventListener('click', () => navigateTo('details-page'));
+        document.getElementById('nav-add-transaction').addEventListener('click', () => navigateTo('add-transaction-page'));
+        document.getElementById('nav-transactions-history').addEventListener('click', () => navigateTo('transactions-history-page'));
+        document.getElementById('nav-fixed-expenses').addEventListener('click', () => navigateTo('fixed-expenses-page'));
+        document.getElementById('nav-import-export').addEventListener('click', () => navigateTo('import-export-page'));
 
 
         // Imposta la data di default nel campo data transazione all'avvio
