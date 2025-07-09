@@ -1,6 +1,6 @@
 {
-    "name": "Gestore del Budget",
-    "short_name": "Budget App",
+    "name": "KeepMyMoney",
+    "short_name": "KMM",
     "description": "La tua app personale per la gestione del budget.",
     "start_url": "./index.html",
     "display": "standalone",
@@ -8,12 +8,12 @@
     "theme_color": "#4f46e5",
     "icons": [
         {
-            "src": "https://placehold.co/192x192/4f46e5/ffffff?text=B",
+            "src": "https://github.com/GiggiKTM/KeepMyMoney/blob/imgs/KMM192.png",
             "sizes": "192x192",
             "type": "image/png"
         },
         {
-            "src": "https://placehold.co/512x512/4f46e5/ffffff?text=B",
+            "src": "https://github.com/GiggiKTM/KeepMyMoney/blob/imgs/KMM512.png",
             "sizes": "512x512",
             "type": "image/png"
         }
