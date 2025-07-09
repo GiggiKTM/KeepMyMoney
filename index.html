@@ -323,6 +323,13 @@
                 <p id="current-balance-home" class="text-4xl font-extrabold text-blue-700 mt-2">€ 0.00</p>
             </div>
 
+            <!-- Nuovo box per il Bilancio Mensile -->
+            <div class="balance-display mb-8 rounded-lg p-4 shadow-md bg-blue-50">
+                <h2 class="text-xl font-semibold text-gray-700">Bilancio Mensile:</h2>
+                <p id="monthly-balance-home" class="text-4xl font-extrabold text-blue-700 mt-2">€ 0.00</p>
+            </div>
+
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
                 <button class="btn btn-nav" onclick="navigateTo('details-page')">Dettagli Saldo</button>
                 <button class="btn btn-nav" onclick="navigateTo('add-transaction-page')">Aggiungi Transazione</button>
@@ -512,6 +519,7 @@
         const nextMonthBtnFixed = document.getElementById('next-month-btn-fixed');
 
         const currentBalanceDisplayHome = document.getElementById('current-balance-home');
+        const monthlyBalanceDisplayHome = document.getElementById('monthly-balance-home'); // Nuovo elemento per il bilancio mensile
 
 
         // Elementi DOM per Import/Export
@@ -671,15 +679,31 @@
             // Calcolo del saldo totale
             const totalBalance = previousBalance + fixedIncome + paypalBalance + revolutBalance + transactionsTotal - fixedExpensesTotal;
 
+            // Calcolo del bilancio mensile (solo entrate fisse, saldi PayPal/Revolut e transazioni del mese, meno spese fisse del mese)
+            const monthlyBalance = fixedIncome + paypalBalance + revolutBalance + transactionsTotal - fixedExpensesTotal;
+
+
             // Aggiorna tutti i display del saldo
             currentBalanceDisplayHome.textContent = `€ ${totalBalance.toFixed(2)}`;
+            monthlyBalanceDisplayHome.textContent = `€ ${monthlyBalance.toFixed(2)}`;
 
-            // Aggiorna la classe per il colore del saldo
+
+            // Aggiorna la classe per il colore del saldo totale
             [currentBalanceDisplayHome].forEach(display => {
                 display.classList.remove('positive', 'negative');
                 if (totalBalance > 0) {
                     display.classList.add('positive');
                 } else if (totalBalance < 0) {
+                    display.classList.add('negative');
+                }
+            });
+
+            // Aggiorna la classe per il colore del bilancio mensile
+            [monthlyBalanceDisplayHome].forEach(display => {
+                display.classList.remove('positive', 'negative');
+                if (monthlyBalance > 0) {
+                    display.classList.add('positive');
+                } else if (monthlyBalance < 0) {
                     display.classList.add('negative');
                 }
             });
