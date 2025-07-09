@@ -1,6 +1,6 @@
 {
     "name": "KeepMyMoney",
-    "short_name": "KMM",
+    "short_name": "KeepMyMoney",
     "description": "La tua app personale per la gestione del budget.",
     "start_url": "./index.html",
     "display": "standalone",
