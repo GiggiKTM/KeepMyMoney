@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KeepMyMoney</title>
+    <title>Gestore del Budget</title>
     <!-- Carica Tailwind CSS per uno stile moderno e responsivo -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Link al manifest della PWA -->
+    <link rel="manifest" href="manifest.json">
     <style>
         /* Stile personalizzato per il font Inter */
         body {
@@ -1485,6 +1487,19 @@
         // Imposta la data di default nel campo data transazione all'avvio
         const today = new Date();
         transactionDateInput.value = today.toISOString().split('T')[0];
+
+        // Registra il Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
 
         // Carica i dati all'avvio dell'app
         window.onload = loadMonthlyData;
